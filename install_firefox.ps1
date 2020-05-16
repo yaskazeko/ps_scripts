@@ -6,36 +6,51 @@ $workdir = "c:\installer\"
 
 # Check if work directory exists if not create it
 
-If (Test-Path -Path $workdir -PathType Container)
-{ Write-Host "$workdir already exists" -ForegroundColor Red}
-ELSE
-{ New-Item -Path $workdir  -ItemType directory }
-
-# Download the installer
-
-$source = "https://download.mozilla.org/?product=firefox-51.0.1-SSL&os=win64&lang=en-US"
-$destination = "$workdir\firefox.exe"
-
-# Check if Invoke-Webrequest exists otherwise execute WebClient
-
-if (Get-Command 'Invoke-Webrequest')
-{
-     Invoke-WebRequest $source -OutFile $destination
+If (Test-Path -Path $workdir -PathType Container){
+    Write-Host "$workdir already exists" -ForegroundColor Red
 }
-else
-{
-    $WebClient = New-Object System.Net.WebClient
-    $webclient.DownloadFile($source, $destination)
+ELSE { 
+    New-Item -Path $workdir  -ItemType directory
 }
 
-# Start the installation
+# get the installed version of firefox
 
-Start-Process -FilePath "$workdir\firefox.exe" -ArgumentList "/S"
+$FFInstalled = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Mozilla\Mozilla Firefox' | Select 'CurrentVersion').CurrentVersion
 
-# Wait XX Seconds for the installation to finish
+# get the latest version of firefox
 
-Start-Sleep -s 35
+$FFLatest = ( Invoke-WebRequest  "https://product-details.mozilla.org/1.0/firefox_versions.json" -UseBasicParsing | ConvertFrom-Json ).LATEST_FIREFOX_VERSION
 
-# Remove the installer
 
-rm -Force $workdir\firefox*
+If ($FFInstalled -match $FFLatest){
+    Write-Host "Installed - $FFInstalled, Latest - $FFLatest" -ForegroundColor Green    
+} 
+Else {
+
+    # Download the installer
+
+    $source = "https://download.mozilla.org/?product=firefox-latest&os=win64&lang=en-US"
+    $destination = "$workdir\firefox.exe"
+
+    # Check if Invoke-Webrequest exists otherwise execute WebClient
+
+    if (Get-Command 'Invoke-Webrequest'){
+         Invoke-WebRequest $source -OutFile $destination
+    }
+    else{
+        $WebClient = New-Object System.Net.WebClient
+        $webclient.DownloadFile($source, $destination)
+    }
+
+    # Start the installation
+
+    Start-Process -FilePath "$workdir\firefox.exe" -ArgumentList "/S"
+
+    # Wait XX Seconds for the installation to finish
+
+    Start-Sleep -s 35
+
+    # Remove the installer
+
+    Remove-Item $workdir -Force
+}
