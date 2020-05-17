@@ -15,7 +15,7 @@ ELSE {
 
 # get the installed version of firefox
 
-$FFInstalled = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Mozilla\Mozilla Firefox' | Select 'CurrentVersion').CurrentVersion
+$FFInstalled = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Mozilla\Mozilla Firefox' | Select-Object 'CurrentVersion').CurrentVersion
 
 # get the latest version of firefox
 
@@ -41,6 +41,13 @@ Else {
         $WebClient = New-Object System.Net.WebClient
         $webclient.DownloadFile($source, $destination)
     }
+
+    # Exit firefox
+    $task = "Stopping Firefox"
+    
+    Write-Progress -CurrentOperation $task
+    Stop-Process -ProcessName 'firefox' -ErrorAction SilentlyContinue -Force
+    Start-Sleep -s 4
 
     # Start the installation
 
